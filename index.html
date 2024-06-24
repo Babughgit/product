@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            width: 50%;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Product Manager</h1>
+        <div>
+            <label for="sellingPrice">Selling Price: </label>
+            <input type="number" id="sellingPrice" />
+            <label for="productName">Product Name: </label>
+            <input type="text" id="productName" />
+            <button onclick="addProduct()">Add Product</button>
+        </div>
+        <h2>Products</h2>
+        <div id="products"></div>
+        <h3>Total Value Worth of Products: <span id="totalValue">Rs 0</span></h3>
+    </div>
+
+    <script>
+        const apiUrl = 'https://crudcrud.com/api/cd5bdc94e2f64617a169ac93d5c96796/products';
+        let products = [];
+        let totalValue = 0;
+
+        // Fetch existing products from the API when the page loads
+        window.onload = () => {
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    products = data;
+                    totalValue = products.reduce((sum, product) => sum + product.price, 0);
+                    updateProducts();
+                    updateTotalValue();
+                })
+                .catch(error => console.error('Error fetching products:', error));
+        };
+
+        function addProduct() {
+            const sellingPrice = parseFloat(document.getElementById('sellingPrice').value);
+            const productName = document.getElementById('productName').value;
+
+            if (sellingPrice && productName) {
+                const product = {
+                    price: sellingPrice,
+                    name: productName
+                };
+
+                // Save product to the API
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(product)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    products.push(data);
+                    totalValue += data.price;
+                    updateProducts();
+                    updateTotalValue();
+                    clearInputs();
+                })
+                .catch(error => console.error('Error adding product:', error));
+            } else {
+                alert('Please enter both selling price and product name.');
+            }
+        }
+
+        function deleteProduct(index) {
+            const productId = products[index]._id;
+            fetch(`${apiUrl}/${productId}`, {
+                method: 'DELETE'
+            })
+            .then(() => {
+                totalValue -= products[index].price;
+                products.splice(index, 1);
+                updateProducts();
+                updateTotalValue();
+            })
+            .catch(error => console.error('Error deleting product:', error));
+        }
+
+        function updateProducts() {
+            const productsDiv = document.getElementById('products');
+            productsDiv.innerHTML = '';
+            products.forEach((product, index) => {
+                const productItem = document.createElement('div');
+                productItem.classList.add('product-item');
+                productItem.innerHTML = `
+                    ${product.price} - ${product.name}
+                    <button onclick="deleteProduct(${index})">Delete Product</button>
+                `;
+                productsDiv.appendChild(productItem);
+            });
+        }
+
+        function updateTotalValue() {
+            document.getElementById('totalValue').innerText = `Rs ${totalValue}`;
+        }
+
+        function clearInputs() {
+            document.getElementById('sellingPrice').value = '';
+            document.getElementById('productName').value = '';
+        }
+    </script>
+</body>
+</html>
